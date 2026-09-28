@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002_create-genres-table
+      author: denis
+      changes:
+        - createTable:
+            tableName: genres
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_genres
+              - column:
+                  name: name
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_genres_name
+      rollback:
+        - dropTable:
+            tableName: genres
