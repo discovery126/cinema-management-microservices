@@ -1,0 +1,43 @@
+# ===== Java / Maven =====
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ===== IDE =====
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Env / secrets =====
+.env
+*.env
+!.env.example
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Build / test output =====
+build/
+out/
+bin/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*

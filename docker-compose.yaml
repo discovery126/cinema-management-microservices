@@ -1,0 +1,53 @@
+services:
+  gomovie-postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${MOVIE_DB_NAME}
+      POSTGRES_USER: ${MOVIE_DB_USER}
+      POSTGRES_PASSWORD: ${MOVIE_DB_PASSWORD}
+    ports:
+      - "${MOVIE_DB_PORT}:5432"
+    volumes:
+      - movie_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${MOVIE_DB_USER} -d ${MOVIE_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  booking-postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${BOOKING_DB_NAME}
+      POSTGRES_USER: ${BOOKING_DB_USER}
+      POSTGRES_PASSWORD: ${BOOKING_DB_PASSWORD}
+    ports:
+      - "${BOOKING_DB_PORT}:5432"
+    volumes:
+      - booking_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${BOOKING_DB_USER} -d ${BOOKING_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  payment-postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${PAYMENT_DB_NAME}
+      POSTGRES_USER: ${PAYMENT_DB_USER}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD}
+    ports:
+      - "${PAYMENT_DB_PORT}:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PAYMENT_DB_USER} -d ${PAYMENT_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  movie_data:
+  booking_data:
+  payment_data:
