@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.movieservice.dto.request.CreateGenresRequest;
 import org.example.movieservice.dto.response.GenreResponse;
 import org.example.movieservice.exception.GenreNotFoundException;
+import org.example.movieservice.mapper.GenreMapper;
 import org.example.movieservice.model.Genre;
 import org.example.movieservice.repository.GenreRepository;
 import org.example.movieservice.service.GenreService;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GenreServiceImpl implements GenreService {
     private final GenreRepository genreRepository;
+    private final GenreMapper genreMapper;
 
     //create only those genres that are not in the database
     //IDEMPOTENT operation
@@ -45,12 +47,10 @@ public class GenreServiceImpl implements GenreService {
     public List<GenreResponse> getGenres() {
         return genreRepository.findAll()
                 .stream()
-                .map(genre -> GenreResponse.builder()
-                        .id(genre.getId())
-                        .name(genre.getName())
-                        .build())
+                .map(genreMapper::toGenreResponse)
                 .toList();
     }
+
     @Override
     public Set<Genre> findAllById(Set<UUID> ids) {
         Set<Genre> found = new HashSet<>(genreRepository.findAllById(ids));

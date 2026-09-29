@@ -3,11 +3,12 @@ package org.example.movieservice.service.impl;
 import org.example.movieservice.dto.request.CreateGenresRequest;
 import org.example.movieservice.dto.response.GenreResponse;
 import org.example.movieservice.exception.GenreNotFoundException;
+import org.example.movieservice.mapper.GenreMapper;
 import org.example.movieservice.model.Genre;
 import org.example.movieservice.repository.GenreRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -18,6 +19,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,15 +28,26 @@ class GenreServiceImplTest {
     @Mock
     private GenreRepository genreRepository;
 
-    @InjectMocks
     private GenreServiceImpl genreService;
 
+    private GenreMapper genreMapper;
+    private CreateGenresRequest createGenresRequest;
+    private Set<String> testNames;
+
+    @BeforeEach
+    void setup() {
+        genreMapper = new GenreMapper();
+
+        genreService = new GenreServiceImpl(genreRepository, genreMapper);
+
+        List<String> testList = Arrays.asList("Драма", "Фантастика", "Комедия");
+        createGenresRequest = new CreateGenresRequest(testList);
+        testNames = new HashSet<>(testList);
+    }
 
     @Test
     void shouldSaveAllGenresWhenRepositoryIsEmpty() {
         //given
-        CreateGenresRequest createGenresRequest =
-                new CreateGenresRequest(Arrays.asList("Драма", "Фантастика", "Комедия"));
         when(genreRepository.findExistingNames(anySet())).thenReturn(new HashSet<>());
 
         //when
@@ -48,13 +61,10 @@ class GenreServiceImplTest {
             return list.size() == 3;
         }));
     }
+
     @Test
     void shouldNotSaveGenresWhenGenresAlreadyExist() {
         //given
-        List<String> testList = Arrays.asList("Драма", "Фантастика", "Комедия");
-        CreateGenresRequest createGenresRequest =
-                new CreateGenresRequest(testList);
-        Set<String> testNames = new HashSet<>(testList);
         when(genreRepository.findExistingNames(anySet())).thenReturn(testNames);
 
         //when
@@ -68,13 +78,11 @@ class GenreServiceImplTest {
     @Test
     void shouldSaveNewGenresWhenSomeDoNotExist() {
         //given
-        List<String> testList = Arrays.asList("Драма", "Фантастика", "Комедия");
-        CreateGenresRequest request = new CreateGenresRequest(testList);
         when(genreRepository.findExistingNames(anySet()))
                 .thenReturn(new HashSet<>(Set.of("Драма")));
 
         //when
-        genreService.createGenres(request);
+        genreService.createGenres(createGenresRequest);
 
         //then
         verify(genreRepository).saveAll(argThat(genres -> {
@@ -85,22 +93,19 @@ class GenreServiceImplTest {
                     && list.stream().anyMatch(g -> g.getName().equals("Комедия"));
         }));
     }
+
     @Test
     void shouldReturnAllGenresWhenRepositoryNotEmpty() {
         //given
-        List<Genre> testList = Arrays.asList(
-                new Genre(UUID.randomUUID(),"Драма"),
-                new Genre(UUID.randomUUID(),"Фантастика")
+        List<Genre> testGenresList = List.of(
+                new Genre(UUID.randomUUID(), "Драма"),
+                new Genre(UUID.randomUUID(), "Фантастика")
         );
-        List<GenreResponse> genreResponses = testList
-                .stream()
-                .map(genre -> GenreResponse.builder()
-                        .id(genre.getId())
-                        .name(genre.getName())
-                        .build())
+        List<GenreResponse> genreResponses = testGenresList.stream()
+                .map(genreMapper::toGenreResponse)
                 .toList();
 
-        when(genreRepository.findAll()).thenReturn(testList);
+        when(genreRepository.findAll()).thenReturn(testGenresList);
 
         //when
         List<GenreResponse> resultGenres = genreService.getGenres();
@@ -109,23 +114,20 @@ class GenreServiceImplTest {
         verify(genreRepository).findAll();
         assertNotNull(resultGenres);
         assertEquals(genreResponses, resultGenres);
-
     }
 
     @Test
     void shouldReturnFoundGenresFromRepositoryWhenRepositoryNotEmpty() {
         //given
-        List<Genre> testGenresList = Arrays.asList(
-                new Genre(UUID.randomUUID(),"Драма"),
-                new Genre(UUID.randomUUID(),"Фантастика")
+        List<Genre> testGenresList = List.of(
+                new Genre(UUID.randomUUID(), "Драма"),
+                new Genre(UUID.randomUUID(), "Фантастика")
         );
-        List<UUID> testIdsList = testGenresList
-                .stream()
+        Set<UUID> testIdsSet = testGenresList.stream()
                 .map(Genre::getId)
-                .toList();
-
-        Set<UUID> testIdsSet = new HashSet<>(testIdsList);
+                .collect(java.util.stream.Collectors.toSet());
         Set<Genre> testGenresSet = new HashSet<>(testGenresList);
+
         when(genreRepository.findAllById(testIdsSet)).thenReturn(testGenresList);
 
         //when
@@ -136,11 +138,11 @@ class GenreServiceImplTest {
         assertNotNull(resultGenres);
         assertEquals(testGenresSet, resultGenres);
     }
+
     @Test
     void shouldThrowNotFoundExceptionWhenRepositoryReturnsNothing() {
         // given
         Set<UUID> testIds = Set.of(UUID.randomUUID(), UUID.randomUUID());
-
         when(genreRepository.findAllById(testIds)).thenReturn(List.of());
 
         // when && then
@@ -151,6 +153,7 @@ class GenreServiceImplTest {
                     assertThat(e.getNotFoundIds()).containsAll(testIds);
                 });
     }
+
     @Test
     void shouldThrowNotFoundExceptionWhenRepositoryReturnsSomeGenres() {
         // given

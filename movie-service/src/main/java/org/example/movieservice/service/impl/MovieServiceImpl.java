@@ -5,6 +5,7 @@ import org.example.movieservice.dto.request.CreateMovieRequest;
 import org.example.movieservice.dto.response.MovieResponse;
 import org.example.movieservice.exception.CustomException;
 import org.example.movieservice.exception.ErrorMessages;
+import org.example.movieservice.mapper.MovieMapper;
 import org.example.movieservice.model.Genre;
 import org.example.movieservice.model.Movie;
 import org.example.movieservice.repository.MovieRepository;
@@ -23,6 +24,7 @@ public class MovieServiceImpl implements MovieService {
 
     private final MovieRepository movieRepository;
     private final GenreService genreService;
+    private final MovieMapper movieMapper;
 
     @Override
     @Transactional
@@ -39,24 +41,14 @@ public class MovieServiceImpl implements MovieService {
                 .build();
         Movie save = movieRepository.save(movie);
 
-        return MovieResponse.builder()
-                .id(save.getId())
-                .title(save.getTitle())
-                .genres(save.getGenres())
-                .durationMinutes(save.getDurationMinutes())
-                .build();
+        return movieMapper.toMovieResponse(save);
     }
 
     @Override
     public MovieResponse getMovie(UUID id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorMessages.MOVIE_DOESNT_EXISTS));
-        return MovieResponse.builder()
-                .id(movie.getId())
-                .title(movie.getTitle())
-                .genres(movie.getGenres())
-                .durationMinutes(movie.getDurationMinutes())
-                .build();
+        return movieMapper.toMovieResponse(movie);
     }
 
     @Override
@@ -69,12 +61,7 @@ public class MovieServiceImpl implements MovieService {
     public List<MovieResponse> getMovies() {
         return movieRepository.findAll()
                 .stream()
-                .map(mv -> MovieResponse.builder()
-                        .id(mv.getId())
-                        .title(mv.getTitle())
-                        .genres(mv.getGenres())
-                        .durationMinutes(mv.getDurationMinutes())
-                        .build())
+                .map(movieMapper::toMovieResponse)
                 .toList();
     }
 

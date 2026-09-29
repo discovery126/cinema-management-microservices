@@ -4,6 +4,7 @@ import org.example.movieservice.dto.request.CreateMovieRequest;
 import org.example.movieservice.dto.response.MovieResponse;
 import org.example.movieservice.exception.CustomException;
 import org.example.movieservice.exception.ErrorMessages;
+import org.example.movieservice.mapper.MovieMapper;
 import org.example.movieservice.model.Genre;
 import org.example.movieservice.model.Movie;
 import org.example.movieservice.repository.MovieRepository;
@@ -11,7 +12,6 @@ import org.example.movieservice.service.GenreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,7 +36,6 @@ class MovieServiceImplTest {
     @Mock
     private GenreService genreService;
 
-    @InjectMocks
     private MovieServiceImpl movieService;
 
     private CreateMovieRequest testCreateMovieRequest;
@@ -46,6 +45,10 @@ class MovieServiceImplTest {
     private Set<UUID> testIdsSet;
     @BeforeEach
     void setup() {
+        MovieMapper movieMapper = new MovieMapper();
+
+        movieService = new MovieServiceImpl(movieRepository, genreService, movieMapper);
+
         testGenresSet = Set.of(
                 new Genre(UUID.randomUUID(),"Драма"),
                 new Genre(UUID.randomUUID(),"Фантастика")
@@ -67,12 +70,7 @@ class MovieServiceImplTest {
                 .genres(testGenresSet)
                 .build();
 
-        testMovieResponse = MovieResponse.builder()
-                .id(testMovie.getId())
-                .title(testMovie.getTitle())
-                .durationMinutes(testMovie.getDurationMinutes())
-                .genres(testMovie.getGenres())
-                .build();
+        testMovieResponse = movieMapper.toMovieResponse(testMovie);
     }
     @Test
     void shouldThrowExceptionWhenTitleAlreadyExists() {
