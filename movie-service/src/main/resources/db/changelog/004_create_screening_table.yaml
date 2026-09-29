@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004_create-screenings-table
+      author: denis
+      changes:
+        - createTable:
+            tableName: screenings
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_screenings
+              - column:
+                  name: movie_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_screenings_on_movie
+                    referencedTableName: movies
+                    referencedColumnNames: id
+              - column:
+                  name: hall
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_seats
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: available_seats
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: starts_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ends_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: screenings
+            indexName: idx_screenings_hall_starts_ends
+            columns:
+              - column: { name: hall }
+              - column: { name: starts_at }
+              - column: { name: ends_at }
+      rollback:
+        - dropTable:
+            tableName: screenings

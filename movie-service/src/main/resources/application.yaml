@@ -16,3 +16,8 @@ spring:
     change-log: db.changelog-master.yaml
 springdotenv:
   enabled: true
+
+
+time:
+  clean:
+    screening: 15

@@ -10,5 +10,7 @@ import java.util.UUID;
 public interface MovieService {
     MovieResponse createMovie(CreateMovieRequest createMovieRequest);
     MovieResponse getMovie(UUID id);
+    // for personal using
+    Movie findById(UUID id);
     List<MovieResponse> getMovies();
 }
