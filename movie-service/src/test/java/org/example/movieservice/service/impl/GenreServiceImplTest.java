@@ -35,10 +35,11 @@ class GenreServiceImplTest {
         //given
         CreateGenresRequest createGenresRequest =
                 new CreateGenresRequest(Arrays.asList("Драма", "Фантастика", "Комедия"));
-        //when
         when(genreRepository.findExistingNames(anySet())).thenReturn(new HashSet<>());
 
+        //when
         genreService.createGenres(createGenresRequest);
+
         //then
         verify(genreRepository).findExistingNames(anySet());
         verify(genreRepository).saveAll(argThat(genres -> {
@@ -54,10 +55,11 @@ class GenreServiceImplTest {
         CreateGenresRequest createGenresRequest =
                 new CreateGenresRequest(testList);
         Set<String> testNames = new HashSet<>(testList);
-        //when
         when(genreRepository.findExistingNames(anySet())).thenReturn(testNames);
 
+        //when
         genreService.createGenres(createGenresRequest);
+
         //then
         verify(genreRepository).findExistingNames(anySet());
         verify(genreRepository, never()).saveAll(anyList());
@@ -68,11 +70,12 @@ class GenreServiceImplTest {
         //given
         List<String> testList = Arrays.asList("Драма", "Фантастика", "Комедия");
         CreateGenresRequest request = new CreateGenresRequest(testList);
-        //when
         when(genreRepository.findExistingNames(anySet()))
                 .thenReturn(new HashSet<>(Set.of("Драма")));
 
+        //when
         genreService.createGenres(request);
+
         //then
         verify(genreRepository).saveAll(argThat(genres -> {
             List<Genre> list = new ArrayList<>();
@@ -84,7 +87,7 @@ class GenreServiceImplTest {
     }
     @Test
     void shouldReturnAllGenresWhenRepositoryNotEmpty() {
-        //when
+        //given
         List<Genre> testList = Arrays.asList(
                 new Genre(UUID.randomUUID(),"Драма"),
                 new Genre(UUID.randomUUID(),"Фантастика")
@@ -98,7 +101,10 @@ class GenreServiceImplTest {
                 .toList();
 
         when(genreRepository.findAll()).thenReturn(testList);
+
+        //when
         List<GenreResponse> resultGenres = genreService.getGenres();
+
         //then
         verify(genreRepository).findAll();
         assertNotNull(resultGenres);
@@ -120,9 +126,11 @@ class GenreServiceImplTest {
 
         Set<UUID> testIdsSet = new HashSet<>(testIdsList);
         Set<Genre> testGenresSet = new HashSet<>(testGenresList);
-        //when
         when(genreRepository.findAllById(testIdsSet)).thenReturn(testGenresList);
+
+        //when
         Set<Genre> resultGenres = genreService.findAllById(testIdsSet);
+
         //then
         verify(genreRepository).findAllById(testIdsSet);
         assertNotNull(resultGenres);
@@ -145,6 +153,7 @@ class GenreServiceImplTest {
     }
     @Test
     void shouldThrowNotFoundExceptionWhenRepositoryReturnsSomeGenres() {
+        // given
         UUID existingId = UUID.randomUUID();
         UUID missingId = UUID.randomUUID();
         List<Genre> found = List.of(new Genre(existingId, "Драма"));
@@ -152,6 +161,7 @@ class GenreServiceImplTest {
 
         when(genreRepository.findAllById(testIds)).thenReturn(found);
 
+        // when && then
         assertThatThrownBy(() -> genreService.findAllById(testIds))
                 .isInstanceOf(GenreNotFoundException.class)
                 .satisfies(ex -> {

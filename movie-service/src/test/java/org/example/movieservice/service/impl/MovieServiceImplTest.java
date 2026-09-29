@@ -76,9 +76,10 @@ class MovieServiceImplTest {
     }
     @Test
     void shouldThrowExceptionWhenTitleAlreadyExists() {
-        //when
+        //given
         when(movieRepository.existsByTitle(testCreateMovieRequest.title())).thenReturn(Boolean.TRUE);
-        //then
+
+        //when && then
         assertThatThrownBy(() -> movieService.createMovie(testCreateMovieRequest))
                 .isInstanceOf(CustomException.class)
                 .hasMessage(ErrorMessages.MOVIE_ALREADY_EXISTS);
@@ -86,11 +87,14 @@ class MovieServiceImplTest {
 
     @Test
     void shouldCreateMovieWhenTitleIsUnique() {
-        //when
+        //given
         when(movieRepository.existsByTitle(testCreateMovieRequest.title())).thenReturn(Boolean.FALSE);
         when(genreService.findAllById(testCreateMovieRequest.genres())).thenReturn(testGenresSet);
         when(movieRepository.save(any(Movie.class))).thenReturn(testMovie);
+
+        //when
         MovieResponse resultMovieResponse = movieService.createMovie(testCreateMovieRequest);
+
         //then
         assertEquals(resultMovieResponse, testMovieResponse);
         verify(movieRepository).existsByTitle(testCreateMovieRequest.title());
@@ -100,9 +104,11 @@ class MovieServiceImplTest {
     }
     @Test
     void shouldThrowExceptionWhenGetMovieAndRepositoryReturnsEmpty() {
+        //given
         UUID testId = UUID.randomUUID();
         when(movieRepository.findById(testId)).thenReturn(Optional.empty());
 
+        //when && then
         assertThatThrownBy(() -> movieService.getMovie(testId))
                 .isInstanceOf(CustomException.class)
                 .hasMessage(ErrorMessages.MOVIE_DOESNT_EXISTS);
@@ -110,9 +116,11 @@ class MovieServiceImplTest {
 
     @Test
     void shouldThrowExceptionWhenFindByIdAndRepositoryReturnsEmpty() {
+        //given
         UUID testId = UUID.randomUUID();
         when(movieRepository.findById(testId)).thenReturn(Optional.empty());
 
+        //when && then
         assertThatThrownBy(() -> movieService.findById(testId))
                 .isInstanceOf(CustomException.class)
                 .hasMessage(ErrorMessages.MOVIE_DOESNT_EXISTS);
@@ -121,9 +129,11 @@ class MovieServiceImplTest {
     void shouldReturnMovieResponseWhenFoundById() {
         //given
         UUID testId = testMovie.getId();
-        //when
         when(movieRepository.findById(testId)).thenReturn(Optional.of(testMovie));
+
+        //when
         MovieResponse resultMovieResponse = movieService.getMovie(testId);
+
         //then
         assertEquals(resultMovieResponse, testMovieResponse);
         verify(movieRepository).findById(testId);
@@ -133,9 +143,11 @@ class MovieServiceImplTest {
     void shouldReturnAllMoviesWhenRepositoryNotEmpty() {
         // given
         List<Movie> testMovies = List.of(testMovie);
-        // when
         when(movieRepository.findAll()).thenReturn(testMovies);
+
+        // when
         List<MovieResponse> result = movieService.getMovies();
+
         // then
         assertEquals(List.of(testMovieResponse), result);
         verify(movieRepository).findAll();
