@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001_create-booking-table
+      author: denis
+      changes:
+        - createTable:
+            tableName: bookings
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_bookings
+              - column:
+                  name: screening_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: customer_name
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seats_count
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE bookings ADD CONSTRAINT chk_bookings_status_valid CHECK (status IN ('PENDING_PAYMENT', 'CONFIRMED', 'CANCELED'))

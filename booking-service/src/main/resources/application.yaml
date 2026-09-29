@@ -12,6 +12,11 @@ spring:
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   liquibase:
-    enabled: false
+    enabled: true
+    change-log: db.changelog-master.yaml
 springdotenv:
   enabled: true
+
+
+restclient:
+  url: ${REST_CLIENT_URL}
