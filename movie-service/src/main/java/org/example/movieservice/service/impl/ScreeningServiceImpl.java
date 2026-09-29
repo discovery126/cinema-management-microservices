@@ -5,6 +5,8 @@ import org.example.movieservice.dto.request.ScreeningCreateRequest;
 import org.example.movieservice.dto.response.ScreeningResponse;
 import org.example.movieservice.exception.CustomException;
 import org.example.movieservice.exception.ErrorMessages;
+import org.example.movieservice.exception.SeatsOverflowException;
+import org.example.movieservice.exception.SoldOutException;
 import org.example.movieservice.mapper.ScreeningMapper;
 import org.example.movieservice.model.Movie;
 import org.example.movieservice.model.Screening;
@@ -13,6 +15,7 @@ import org.example.movieservice.service.MovieService;
 import org.example.movieservice.service.ScreeningService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -30,6 +33,7 @@ public class ScreeningServiceImpl implements ScreeningService {
     private int timeCleanScreening;
 
     @Override
+    @Transactional
     public ScreeningResponse createScreening(ScreeningCreateRequest screeningCreateRequest, UUID movieId) {
         Movie movie = movieService.findById(movieId);
         Instant start = screeningCreateRequest.startsAt();
@@ -56,7 +60,9 @@ public class ScreeningServiceImpl implements ScreeningService {
 
         return screeningMapper.toScreeningResponse(save);
     }
+
     @Override
+    @Transactional(readOnly = true)
     public List<ScreeningResponse> getAllScreeningByMovieId(UUID movieId) {
         return screeningRepository.findAllByMovieId(movieId)
                 .stream()
@@ -65,6 +71,7 @@ public class ScreeningServiceImpl implements ScreeningService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ScreeningResponse getScreening(UUID id) {
         Screening screening = screeningRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorMessages.SCREENING_DOESNT_EXISTS));
@@ -73,10 +80,42 @@ public class ScreeningServiceImpl implements ScreeningService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ScreeningResponse> getAllScreening() {
         return screeningRepository.findAll()
                 .stream()
                 .map(screeningMapper::toScreeningResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void reserve(UUID id, Integer seatsCount) {
+        validateSeatsCount(seatsCount);
+        Screening screening = screeningRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorMessages.SCREENING_DOESNT_EXISTS));
+        if (screening.getAvailableSeats() < seatsCount) {
+            throw new SoldOutException(ErrorMessages.SOLD_OUT_SCREENING);
+        }
+        screening.setAvailableSeats(screening.getAvailableSeats() - seatsCount);
+    }
+
+    @Override
+    @Transactional
+    public void release(UUID id, Integer seatsCount) {
+        validateSeatsCount(seatsCount);
+        Screening screening = screeningRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorMessages.SCREENING_DOESNT_EXISTS));
+        int newAvailable = screening.getAvailableSeats() + seatsCount;
+        if (newAvailable > screening.getTotalSeats()) {
+            throw new SeatsOverflowException(ErrorMessages.SEATS_OVERFLOW);
+        }
+        screening.setAvailableSeats(newAvailable);
+    }
+
+    private void validateSeatsCount(Integer seatsCount) {
+        if (seatsCount == null || seatsCount <= 0) {
+            throw new CustomException(ErrorMessages.INVALID_SEATS_COUNT);
+        }
     }
 }

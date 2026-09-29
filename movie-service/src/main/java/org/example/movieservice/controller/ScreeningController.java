@@ -4,10 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.movieservice.dto.response.ScreeningResponse;
 import org.example.movieservice.service.ScreeningService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,5 +26,19 @@ public class ScreeningController {
     public ResponseEntity<ScreeningResponse> getScreening(@PathVariable UUID id) {
         return ResponseEntity
                 .ok(screeningService.getScreening(id));
+    }
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<ScreeningResponse> reserve(@PathVariable UUID id,
+                                                     @RequestParam(name = "seatsCount") Integer seatsCount) {
+        screeningService.reserve(id,seatsCount);
+        return ResponseEntity.ok()
+                .build();
+    }
+    @PostMapping("/{id}/release")
+    public ResponseEntity<ScreeningResponse> release(@PathVariable UUID id,
+                                                     @RequestParam(name = "seatsCount") Integer seatsCount) {
+        screeningService.release(id,seatsCount);
+        return ResponseEntity.ok()
+                .build();
     }
 }

@@ -11,4 +11,6 @@ public interface ScreeningService {
     List<ScreeningResponse> getAllScreeningByMovieId(UUID movieId);
     ScreeningResponse getScreening(UUID id);
     List<ScreeningResponse> getAllScreening();
+    void reserve(UUID id, Integer seatsCount);
+    void release(UUID id, Integer seatsCount);
 }

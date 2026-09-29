@@ -1,21 +1,33 @@
 package org.example.movieservice.exception;
 
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
-@ControllerAdvice
+@RestControllerAdvice
 public class CustomExceptionHandler {
+
     @ExceptionHandler(CustomException.class)
-    public ProblemDetail handleNotFound(CustomException ex) {
+    public ProblemDetail handleCustom(CustomException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(SoldOutException.class)
+    public ProblemDetail handleSoldOut(SoldOutException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SeatsOverflowException.class)
+    public ProblemDetail handleOverflow(SeatsOverflowException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(GenreNotFoundException.class)
-    public ProblemDetail handle(GenreNotFoundException ex) {
+    public ProblemDetail handleGenreNotFound(GenreNotFoundException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND, "Some genres do not exist");
         pd.setTitle("Genres not found");
