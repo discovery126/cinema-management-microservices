@@ -1,5 +1,6 @@
 server:
   port: ${PORT}
+
 spring:
   application:
     name: movie-service
@@ -14,10 +15,28 @@ spring:
   liquibase:
     enabled: true
     change-log: db.changelog-master.yaml
+
 springdotenv:
   enabled: true
 
+logging:
+  file:
+    name: log/movie-service/movie-service.log
+  level:
+    org.example.movieservice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    org.springframework.boot.SpringApplication: INFO
+    liquibase: INFO
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
+      clean-history-on-start: false
 
 time:
   clean:
-    screening: 15
+    screening: ${TIME_CLEAN_SCREENING}
