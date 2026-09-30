@@ -1,4 +1,4 @@
-package com.github.discovery126.paymentservice.Impl;
+package com.github.discovery126.paymentservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +25,18 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final KafkaTemplate<String, UUID> kafkaTemplate;
 
+    @Value("${kafka.topics.payment-completed}")
+    private String paymentCompletedTopic;
+
+    @Value("${kafka.topics.payment-failed}")
+    private String paymentFailedTopic;
+
     @Value("${payment.max-amount}")
     private BigDecimal maxAmount;
 
     @Override
-    @KafkaListener(topics = "booking-created",groupId = "payment-service-booking-service")
+    @KafkaListener(topics = "${kafka.topics.booking-created}",
+                    groupId = "payment-service-booking-service")
     @Transactional
     public void createPayment(PaymentDto paymentDto) {
         log.info("Processing payment: bookingId={}, amount={}",
@@ -49,11 +56,11 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         if (status == PaymentStatus.SUCCESS) {
-            kafkaTemplate.send("payment-completed", payment.getBookingId());
+            kafkaTemplate.send(paymentCompletedTopic, payment.getBookingId());
             log.info("Payment completed: bookingId={}, amount={}",
                     payment.getBookingId(), payment.getAmount());
         } else {
-            kafkaTemplate.send("payment-failed", payment.getBookingId());
+            kafkaTemplate.send(paymentFailedTopic, payment.getBookingId());
             log.warn("Payment failed: bookingId={}, amount={}, maxAutoApprove={}",
                     payment.getBookingId(), payment.getAmount(), maxAmount);
         }

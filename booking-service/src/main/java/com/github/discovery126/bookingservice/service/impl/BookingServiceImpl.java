@@ -1,4 +1,4 @@
-package com.github.discovery126.bookingservice.service.Impl;
+package com.github.discovery126.bookingservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +15,7 @@ import com.github.discovery126.bookingservice.model.Booking;
 import com.github.discovery126.bookingservice.model.BookingStatus;
 import com.github.discovery126.bookingservice.repository.BookingRepository;
 import com.github.discovery126.bookingservice.service.BookingService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,9 @@ public class BookingServiceImpl implements BookingService {
     private static final String RESERVE_PATH = "/screenings/{id}/reserve";
     private static final String RELEASE_PATH = "/screenings/{id}/release";
 
+    @Value("${kafka.topics.booking-created}")
+    private String bookingCreatedTopic;
+
     @Override
     @Transactional
     public BookingResponse createBooking(BookingCreateRequest request) {
@@ -69,7 +73,7 @@ public class BookingServiceImpl implements BookingService {
             Booking save = bookingRepository.save(booking);
             log.info("Booking created: id={}, screeningId={}, seats={}, totalPrice={}",
                     save.getId(), save.getScreeningId(), save.getSeatsCount(), save.getTotalPrice());
-            kafkaTemplate.send("booking-created",new PaymentDto(save.getId(),save.getTotalPrice()));
+            kafkaTemplate.send(bookingCreatedTopic,new PaymentDto(save.getId(),save.getTotalPrice()));
             log.info("Payment event sent: bookingId={}, amount={}", save.getId(), save.getTotalPrice());
             return bookingMapper.toBookingResponse(save);
         } catch (Exception e) {
@@ -90,7 +94,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    @KafkaListener(topics = "payment-completed", groupId = "booking-service-payment-completed")
+    @KafkaListener(topics = "${kafka.topics.payment-completed}",
+                    groupId = "booking-service-payment-completed")
     public void completedBooking(UUID bookingId) {
         log.info("Completing booking id={}", bookingId);
 
@@ -121,7 +126,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    @KafkaListener(topics = "payment-failed",groupId = "booking-service-payment-failed")
+    @KafkaListener(topics = "${kafka.topics.payment-failed}"
+                    ,groupId = "booking-service-payment-failed")
     public void release(UUID bookingId) {
         log.info("Releasing booking id={}", bookingId);
 

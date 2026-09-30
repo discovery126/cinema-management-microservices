@@ -48,6 +48,12 @@ logging:
       max-history: 30
       total-size-cap: 1GB
       clean-history-on-start: false
-
+#custom variables
 restclient:
   url: ${REST_CLIENT_URL}
+
+kafka:
+  topics:
+    booking-created: booking-created
+    payment-completed: payment-completed
+    payment-failed: payment-failed

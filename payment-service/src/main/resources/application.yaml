@@ -49,5 +49,11 @@ logging:
       max-history: 30
       total-size-cap: 1GB
       clean-history-on-start: false
+# custom variables
 payment:
   max-amount: ${PAYMENT_MAX_AMOUNT}
+kafka:
+  topics:
+    booking-created: booking-created
+    payment-completed: payment-completed
+    payment-failed: payment-failed
