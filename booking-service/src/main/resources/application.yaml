@@ -16,7 +16,23 @@ spring:
     change-log: db.changelog-master.yaml
 springdotenv:
   enabled: true
-
+logging:
+  file:
+    name: log/booking-service/booking-service.log
+  level:
+    org.example.bookingservice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    org.springframework.boot.SpringApplication: INFO
+    liquibase: INFO
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
+      clean-history-on-start: false
 
 restclient:
   url: ${REST_CLIENT_URL}
