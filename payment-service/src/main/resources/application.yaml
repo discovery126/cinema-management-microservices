@@ -14,5 +14,40 @@ spring:
   liquibase:
     enabled: true
     change-log: db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: localhost:29092
+    admin:
+      auto-create: true
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: "org.example.paymentservice.dto,org.example.bookingservice.dto.payment"
+        spring.json.type.mapping: "org.example.bookingservice.dto.payment.PaymentDto:org.example.paymentservice.dto.PaymentDto"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
 springdotenv:
   enabled: true
+logging:
+  file:
+    name: log/payment-service/payment-service.log
+  level:
+    org.example.bookingservice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    org.springframework.boot.SpringApplication: INFO
+    liquibase: INFO
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
+      clean-history-on-start: false
+payment:
+  max-amount: ${PAYMENT_MAX_AMOUNT}

@@ -2,7 +2,6 @@ package org.example.paymentservice.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -32,7 +31,6 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    @NotNull
     @Column(name = "processed_at", nullable = false)
     private Instant processedAt;
 

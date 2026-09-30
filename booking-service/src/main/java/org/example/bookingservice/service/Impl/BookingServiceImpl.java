@@ -2,6 +2,7 @@ package org.example.bookingservice.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.bookingservice.dto.payment.PaymentDto;
 import org.example.bookingservice.dto.request.BookingCreateRequest;
 import org.example.bookingservice.dto.response.BookingResponse;
 import org.example.bookingservice.dto.movie.ScreeningDto;
@@ -14,6 +15,8 @@ import org.example.bookingservice.model.Booking;
 import org.example.bookingservice.model.BookingStatus;
 import org.example.bookingservice.repository.BookingRepository;
 import org.example.bookingservice.service.BookingService;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
@@ -33,6 +36,8 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
     private final RestClient restClient;
+
+    private final KafkaTemplate<String, PaymentDto> kafkaTemplate;
 
     private static final String SCREENING_BY_ID = "/screenings/{id}";
     private static final String RESERVE_PATH = "/screenings/{id}/reserve";
@@ -64,10 +69,12 @@ public class BookingServiceImpl implements BookingService {
             Booking save = bookingRepository.save(booking);
             log.info("Booking created: id={}, screeningId={}, seats={}, totalPrice={}",
                     save.getId(), save.getScreeningId(), save.getSeatsCount(), save.getTotalPrice());
-
+            kafkaTemplate.send("booking-created",new PaymentDto(save.getId(),save.getTotalPrice()));
+            log.info("Payment event sent: bookingId={}, amount={}", save.getId(), save.getTotalPrice());
             return bookingMapper.toBookingResponse(save);
         } catch (Exception e) {
-            log.error("Booking creation failed, releasing seats: screeningId={}, seats={}",
+            log.error("Booking creation failed ({}), releasing seats: screeningId={}, seats={}",
+                    e.getClass().getSimpleName(),
                     request.screeningId(), request.seatsCount(), e);
             try {
                 releaseSeats(request.screeningId(), request.seatsCount());
@@ -79,6 +86,26 @@ public class BookingServiceImpl implements BookingService {
             }
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    @KafkaListener(topics = "payment-completed", groupId = "booking-service-payment-completed")
+    public void completedBooking(UUID bookingId) {
+        log.info("Completing booking id={}", bookingId);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> {
+                    log.warn("Booking id={} not found", bookingId);
+                    return new CustomException(ErrorMessages.BOOKING_DOESNT_EXISTS);
+                });
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            log.info("Booking id={} already confirmed, skipping", bookingId);
+            return;
+        }
+
+        booking.setStatus(BookingStatus.CONFIRMED);
+        log.info("Booking id={} confirmed", bookingId);
     }
 
     @Override
@@ -94,6 +121,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    @KafkaListener(topics = "payment-failed",groupId = "booking-service-payment-failed")
     public void release(UUID bookingId) {
         log.info("Releasing booking id={}", bookingId);
 
@@ -117,10 +145,13 @@ public class BookingServiceImpl implements BookingService {
 
     private ScreeningDto fetchScreening(UUID id) {
         try {
-            return restClient.get()
+            ScreeningDto screening = restClient.get()
                     .uri(SCREENING_BY_ID, id)
                     .retrieve()
                     .body(ScreeningDto.class);
+            log.debug("Fetched screening id={}: hall={}, price={}",
+                    id, screening.hall(), screening.price());
+            return screening;
         } catch (HttpClientErrorException.NotFound e) {
             log.warn("Screening id={} not found in movie-service", id);
             throw new ScreeningNotFoundException(ErrorMessages.SCREENING_DOESNT_EXISTS);
@@ -144,6 +175,7 @@ public class BookingServiceImpl implements BookingService {
                             .build(screeningId))
                     .retrieve()
                     .toBodilessEntity();
+            log.debug("Seats reserved: screeningId={}, seats={}", screeningId, seatsCount);
         } catch (HttpClientErrorException.Conflict e) {
             log.warn("Reserve conflict: screeningId={}, seats={} - sold out", screeningId, seatsCount);
             throw new BookingConflictException(ErrorMessages.SOLD_OUT_SCREENING);
@@ -167,6 +199,7 @@ public class BookingServiceImpl implements BookingService {
                             .build(screeningId))
                     .retrieve()
                     .toBodilessEntity();
+            log.debug("Seats released: screeningId={}, seats={}", screeningId, seatsCount);
         } catch (HttpClientErrorException.Conflict e) {
             log.warn("Release conflict: screeningId={}, seats={} - overflow", screeningId, seatsCount);
             throw new BookingConflictException(ErrorMessages.SEATS_OVERFLOW);

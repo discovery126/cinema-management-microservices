@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface BookingService {
     BookingResponse createBooking(BookingCreateRequest bookingCreateRequest);
+    void completedBooking(UUID bookingId);
     BookingResponse getBooking(UUID id);
     void release(UUID bookingId);
 }
