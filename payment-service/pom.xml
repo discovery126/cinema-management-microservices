@@ -8,7 +8,7 @@
 		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>org.example</groupId>
+	<groupId>com.github.discovery126</groupId>
 	<artifactId>payment-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>payment-service</name>

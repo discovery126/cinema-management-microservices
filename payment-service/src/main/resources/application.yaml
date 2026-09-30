@@ -25,8 +25,8 @@ spring:
       properties:
         spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
-        spring.json.trusted.packages: "org.example.paymentservice.dto,org.example.bookingservice.dto.payment"
-        spring.json.type.mapping: "org.example.bookingservice.dto.payment.PaymentDto:org.example.paymentservice.dto.PaymentDto"
+        spring.json.trusted.packages: "com.github.discovery126.paymentservice.dto,com.github.discovery126.bookingservice.dto.payment"
+        spring.json.type.mapping: "com.github.discovery126.bookingservice.dto.payment.PaymentDto:com.github.discovery126.paymentservice.dto.PaymentDto"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
