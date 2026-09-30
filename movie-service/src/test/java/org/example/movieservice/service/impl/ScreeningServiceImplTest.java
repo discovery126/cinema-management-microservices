@@ -4,6 +4,8 @@ import org.example.movieservice.dto.request.ScreeningCreateRequest;
 import org.example.movieservice.dto.response.ScreeningResponse;
 import org.example.movieservice.exception.CustomException;
 import org.example.movieservice.exception.ErrorMessages;
+import org.example.movieservice.exception.SeatsOverflowException;
+import org.example.movieservice.exception.SoldOutException;
 import org.example.movieservice.mapper.ScreeningMapper;
 import org.example.movieservice.model.Genre;
 import org.example.movieservice.model.Movie;
@@ -50,7 +52,6 @@ class ScreeningServiceImplTest {
     private Movie testMovie;
     private Screening testScreening;
     private ScreeningResponse testScreeningResponse;
-
     @BeforeEach
     void setup() {
         ScreeningMapper screeningMapper = new ScreeningMapper();
@@ -64,7 +65,7 @@ class ScreeningServiceImplTest {
                 "A",
                 100,
                 new BigDecimal("1000.0"),
-                Instant.parse("2024-01-01T10:00:00Z")
+                Instant.parse("2026-01-01T10:00:00Z")
         );
         testMovieId = UUID.randomUUID();
 
@@ -138,7 +139,7 @@ class ScreeningServiceImplTest {
         verify(screeningRepository).findById(id);
     }
     @Test
-    void shouldThrowExceptionWhenScreeningNotFound() {
+    void shouldThrowsExceptionWhenScreeningNotFound() {
         //given
         UUID id = UUID.randomUUID();
         when(screeningRepository.findById(id)).thenReturn(Optional.empty());
@@ -193,5 +194,78 @@ class ScreeningServiceImplTest {
         assertTrue(result.isEmpty());
         verify(screeningRepository).findAllByMovieId(movieId);
     }
+    @Test
+    void shouldReserveScreeningWhenRepositoryIsNotEmpty() {
+        //given
+        Integer seatsCount = 3;
+        int testAvailableSeats = testScreening.getAvailableSeats() - seatsCount;
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.ofNullable(testScreening));
+        //when
+        screeningService.reserve(testScreening.getId(), seatsCount);
+        //then
+        verify(screeningRepository).findById(testScreening.getId());
+        assertEquals(testAvailableSeats, testScreening.getAvailableSeats());
+    }
+    @Test
+    void shouldThrowsCustomExceptionWhenReserveAndRepositoryIsEmpty() {
+        //given
+        Integer seatsCount = 3;
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.empty());
+        //when && then
+        assertThatThrownBy(() -> screeningService.reserve(testScreening.getId(), seatsCount))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorMessages.SCREENING_DOESNT_EXISTS);
 
+    }
+    @Test
+    void shouldThrowsSoldOutExceptionWhenScreeningIsSoldOut() {
+        //given
+        testScreening.setAvailableSeats(2);
+        Integer seatsCount = 3;
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.ofNullable(testScreening));
+        //when && then
+        assertThatThrownBy(() -> screeningService.reserve(testScreening.getId(), seatsCount))
+                .isInstanceOf(SoldOutException.class)
+                .hasMessage(ErrorMessages.SOLD_OUT_SCREENING);
+    }
+    @Test
+    void shouldReleaseScreeningWhenRepositoryIsNotEmpty() {
+        //given
+        Integer seatsCount = 3;
+        testScreening.setAvailableSeats(testScreening.getAvailableSeats() - seatsCount);
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.ofNullable(testScreening));
+        //when
+        screeningService.release(testScreening.getId(), seatsCount);
+        //then
+        verify(screeningRepository).findById(testScreening.getId());
+        assertEquals(testScreening.getTotalSeats(), testScreening.getAvailableSeats());
+    }
+    @Test
+    void shouldThrowsCustomExceptionWhenReleaseAndRepositoryIsEmpty() {
+        //given
+        Integer seatsCount = 3;
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.empty());
+        //when && then
+        assertThatThrownBy(() -> screeningService.release(testScreening.getId(), seatsCount))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorMessages.SCREENING_DOESNT_EXISTS);
+
+    }
+    @Test
+    void shouldThrowsSeatsOverflowExceptionWhenReleaseWouldExceedTotalSeats() {
+        //given
+        Integer seatsCount = 4;
+        testScreening.setAvailableSeats(testScreening.getAvailableSeats() - 3);
+        when(screeningRepository.findById(testScreening.getId()))
+                .thenReturn(Optional.ofNullable(testScreening));
+        //when && then
+        assertThatThrownBy(() -> screeningService.release(testScreening.getId(), seatsCount))
+                .isInstanceOf(SeatsOverflowException.class)
+                .hasMessage(ErrorMessages.SEATS_OVERFLOW);
+    }
 }
