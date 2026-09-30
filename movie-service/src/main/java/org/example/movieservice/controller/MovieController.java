@@ -1,5 +1,6 @@
 package org.example.movieservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.movieservice.dto.request.CreateMovieRequest;
 import org.example.movieservice.dto.request.ScreeningCreateRequest;
@@ -22,7 +23,7 @@ public class MovieController {
     private final ScreeningService screeningService;
 
     @PostMapping
-    public ResponseEntity<MovieResponse> createMovie(@RequestBody CreateMovieRequest createMovieRequest) {
+    public ResponseEntity<MovieResponse> createMovie(@RequestBody @Valid CreateMovieRequest createMovieRequest) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(movieService.createMovie(createMovieRequest));
@@ -39,7 +40,7 @@ public class MovieController {
                 .ok(movieService.getMovie(id));
     }
     @PostMapping("/{movieId}/screenings")
-    public ResponseEntity<ScreeningResponse> createScreeningByMovie(@RequestBody ScreeningCreateRequest screeningCreateRequest,
+    public ResponseEntity<ScreeningResponse> createScreeningByMovie(@RequestBody @Valid ScreeningCreateRequest screeningCreateRequest,
                                                                     @PathVariable UUID movieId) {
         return ResponseEntity
                 .ok(screeningService.createScreening(screeningCreateRequest,movieId));

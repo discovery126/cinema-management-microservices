@@ -2,6 +2,8 @@ package org.example.movieservice.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,11 +30,7 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler(GenreNotFoundException.class)
     public ProblemDetail handleGenreNotFound(GenreNotFoundException ex) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                HttpStatus.NOT_FOUND, "Some genres do not exist");
-        pd.setTitle("Genres not found");
-        pd.setProperty("not_found_genres", ex.getNotFoundIds());
-        return pd;
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -40,13 +38,16 @@ public class CustomExceptionHandler {
         List<String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .map(FieldError::getDefaultMessage)
                 .toList();
 
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, "Validation failed");
-        pd.setTitle("Validation Failed");
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
         pd.setProperty("errors", errors);
         return pd;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Malformed JSON request");
     }
 }

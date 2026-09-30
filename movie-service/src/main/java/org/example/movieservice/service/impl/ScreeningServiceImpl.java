@@ -91,7 +91,6 @@ public class ScreeningServiceImpl implements ScreeningService {
     @Override
     @Transactional
     public void reserve(UUID id, Integer seatsCount) {
-        validateSeatsCount(seatsCount);
         Screening screening = screeningRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorMessages.SCREENING_DOESNT_EXISTS));
         if (screening.getAvailableSeats() < seatsCount) {
@@ -103,7 +102,6 @@ public class ScreeningServiceImpl implements ScreeningService {
     @Override
     @Transactional
     public void release(UUID id, Integer seatsCount) {
-        validateSeatsCount(seatsCount);
         Screening screening = screeningRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorMessages.SCREENING_DOESNT_EXISTS));
         int newAvailable = screening.getAvailableSeats() + seatsCount;
@@ -111,11 +109,5 @@ public class ScreeningServiceImpl implements ScreeningService {
             throw new SeatsOverflowException(ErrorMessages.SEATS_OVERFLOW);
         }
         screening.setAvailableSeats(newAvailable);
-    }
-
-    private void validateSeatsCount(Integer seatsCount) {
-        if (seatsCount == null || seatsCount <= 0) {
-            throw new CustomException(ErrorMessages.INVALID_SEATS_COUNT);
-        }
     }
 }
