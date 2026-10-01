@@ -39,6 +39,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/movies/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/genres/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/screenings/**").hasRole("ADMIN")
+
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
