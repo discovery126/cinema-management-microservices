@@ -13,3 +13,8 @@ spring:
     change-log: db.changelog-master.yaml
 springdotenv:
   enabled: true
+#custom variables
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
+  refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
