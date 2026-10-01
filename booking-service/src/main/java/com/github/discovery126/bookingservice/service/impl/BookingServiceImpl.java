@@ -36,8 +36,7 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
-    private final RestClient restClient;
-
+    private final RestClient restClientMovie;
     private final KafkaTemplate<String, PaymentDto> kafkaTemplate;
 
     private static final String SCREENING_BY_ID = "/screenings/{id}";
@@ -55,7 +54,6 @@ public class BookingServiceImpl implements BookingService {
 
         ScreeningDto screeningDto = fetchScreening(request.screeningId());
         reserveSeats(request.screeningId(), request.seatsCount());
-        log.info("Seats reserved: screeningId={}, seats={}", request.screeningId(), request.seatsCount());
 
         try {
             BigDecimal totalPrice = screeningDto.price()
@@ -70,24 +68,28 @@ public class BookingServiceImpl implements BookingService {
                     .createdAt(Instant.now())
                     .build();
 
-            Booking save = bookingRepository.save(booking);
+            Booking saved = bookingRepository.save(booking);
             log.info("Booking created: id={}, screeningId={}, seats={}, totalPrice={}",
-                    save.getId(), save.getScreeningId(), save.getSeatsCount(), save.getTotalPrice());
-            kafkaTemplate.send(bookingCreatedTopic,new PaymentDto(save.getId(),save.getTotalPrice()));
-            log.info("Payment event sent: bookingId={}, amount={}", save.getId(), save.getTotalPrice());
-            return bookingMapper.toBookingResponse(save);
+                    saved.getId(), saved.getScreeningId(), saved.getSeatsCount(), saved.getTotalPrice());
+
+            kafkaTemplate.send(bookingCreatedTopic, new PaymentDto(saved.getId(), saved.getTotalPrice()));
+            log.info("Payment event sent: bookingId={}, amount={}", saved.getId(), saved.getTotalPrice());
+
+            return bookingMapper.toBookingResponse(saved);
+
         } catch (Exception e) {
-            log.error("Booking creation failed ({}), releasing seats: screeningId={}, seats={}",
-                    e.getClass().getSimpleName(),
-                    request.screeningId(), request.seatsCount(), e);
+            log.error("Booking creation failed ({}): screeningId={}, seats={}",
+                    e.getClass().getSimpleName(), request.screeningId(), request.seatsCount());
+
             try {
                 releaseSeats(request.screeningId(), request.seatsCount());
                 log.info("Seats released after failure: screeningId={}, seats={}",
                         request.screeningId(), request.seatsCount());
             } catch (Exception releaseEx) {
-                log.error("Failed to release seats after booking failure: screeningId={}, seats={}",
-                        request.screeningId(), request.seatsCount(), releaseEx);
+                log.error("Failed to release seats after failure: screeningId={}, seats={}",
+                        request.screeningId(), request.seatsCount());
             }
+
             throw e;
         }
     }
@@ -95,7 +97,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     @KafkaListener(topics = "${kafka.topics.payment-completed}",
-                    groupId = "booking-service-payment-completed")
+            groupId = "booking-service-payment-completed")
     public void completedBooking(UUID bookingId) {
         log.info("Completing booking id={}", bookingId);
 
@@ -104,6 +106,7 @@ public class BookingServiceImpl implements BookingService {
                     log.warn("Booking id={} not found", bookingId);
                     return new CustomException(ErrorMessages.BOOKING_DOESNT_EXISTS);
                 });
+
         if (booking.getStatus() == BookingStatus.CONFIRMED) {
             log.info("Booking id={} already confirmed, skipping", bookingId);
             return;
@@ -126,8 +129,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    @KafkaListener(topics = "${kafka.topics.payment-failed}"
-                    ,groupId = "booking-service-payment-failed")
+    @KafkaListener(topics = "${kafka.topics.payment-failed}",
+            groupId = "booking-service-payment-failed")
     public void release(UUID bookingId) {
         log.info("Releasing booking id={}", bookingId);
 
@@ -151,7 +154,7 @@ public class BookingServiceImpl implements BookingService {
 
     private ScreeningDto fetchScreening(UUID id) {
         try {
-            ScreeningDto screening = restClient.get()
+            ScreeningDto screening = restClientMovie.get()
                     .uri(SCREENING_BY_ID, id)
                     .retrieve()
                     .body(ScreeningDto.class);
@@ -162,19 +165,19 @@ public class BookingServiceImpl implements BookingService {
             log.warn("Screening id={} not found in movie-service", id);
             throw new ScreeningNotFoundException(ErrorMessages.SCREENING_DOESNT_EXISTS);
         } catch (HttpServerErrorException e) {
-            log.error("movie-service returned {} for screening id={}: {}",
-                    e.getStatusCode(), id, e.getResponseBodyAsString(), e);
+            log.error("movie-service returned {} for screening id={}",
+                    e.getStatusCode(), id);
             throw e;
         } catch (RestClientException e) {
-            log.error("Failed to call movie-service for screening id={}: {}",
-                    id, e.getMessage(), e);
+            log.error("movie-service unavailable for screening id={}: {}",
+                    id, e.getMessage());
             throw e;
         }
     }
 
     private void reserveSeats(UUID screeningId, Integer seatsCount) {
         try {
-            restClient.post()
+            restClientMovie.post()
                     .uri(uriBuilder -> uriBuilder
                             .path(RESERVE_PATH)
                             .queryParam("seatsCount", seatsCount)
@@ -186,19 +189,19 @@ public class BookingServiceImpl implements BookingService {
             log.warn("Reserve conflict: screeningId={}, seats={} - sold out", screeningId, seatsCount);
             throw new BookingConflictException(ErrorMessages.SOLD_OUT_SCREENING);
         } catch (HttpServerErrorException e) {
-            log.error("movie-service returned {} on reserve: screeningId={}, seats={}: {}",
-                    e.getStatusCode(), screeningId, seatsCount, e.getResponseBodyAsString(), e);
+            log.error("movie-service returned {} on reserve: screeningId={}, seats={}",
+                    e.getStatusCode(), screeningId, seatsCount);
             throw e;
         } catch (RestClientException e) {
-            log.error("Failed to reserve seats via movie-service: screeningId={}, seats={}: {}",
-                    screeningId, seatsCount, e.getMessage(), e);
+            log.error("Failed to reserve seats: screeningId={}, seats={}: {}",
+                    screeningId, seatsCount, e.getMessage());
             throw e;
         }
     }
 
     private void releaseSeats(UUID screeningId, Integer seatsCount) {
         try {
-            restClient.post()
+            restClientMovie.post()
                     .uri(uriBuilder -> uriBuilder
                             .path(RELEASE_PATH)
                             .queryParam("seatsCount", seatsCount)
@@ -210,12 +213,12 @@ public class BookingServiceImpl implements BookingService {
             log.warn("Release conflict: screeningId={}, seats={} - overflow", screeningId, seatsCount);
             throw new BookingConflictException(ErrorMessages.SEATS_OVERFLOW);
         } catch (HttpServerErrorException e) {
-            log.error("movie-service returned {} on release: screeningId={}, seats={}: {}",
-                    e.getStatusCode(), screeningId, seatsCount, e.getResponseBodyAsString(), e);
+            log.error("movie-service returned {} on release: screeningId={}, seats={}",
+                    e.getStatusCode(), screeningId, seatsCount);
             throw e;
         } catch (RestClientException e) {
-            log.error("Failed to release seats via movie-service: screeningId={}, seats={}: {}",
-                    screeningId, seatsCount, e.getMessage(), e);
+            log.error("Failed to release seats: screeningId={}, seats={}: {}",
+                    screeningId, seatsCount, e.getMessage());
             throw e;
         }
     }

@@ -50,10 +50,16 @@ logging:
       clean-history-on-start: false
 #custom variables
 restclient:
-  url: ${REST_CLIENT_URL}
+  url:
+    movie: ${REST_CLIENT_URL_MOVIE}
+    auth: ${REST_CLIENT_URL_AUTH}
 
 kafka:
   topics:
     booking-created: booking-created
     payment-completed: payment-completed
     payment-failed: payment-failed
+app:
+  booking:
+    email: ${BOOKING_EMAIL}
+    password: ${BOOKING_PASSWORD}
