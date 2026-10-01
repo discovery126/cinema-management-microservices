@@ -46,6 +46,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  auth-postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    ports:
+      - "${AUTH_DB_PORT}:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d ${AUTH_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   kafka:
     image: confluentinc/cp-kafka:7.9.10
     ports:
@@ -71,3 +86,4 @@ volumes:
   movie_data:
   booking_data:
   payment_data:
+  auth_data:
