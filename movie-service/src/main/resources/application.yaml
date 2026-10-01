@@ -36,7 +36,9 @@ logging:
       max-history: 30
       total-size-cap: 1GB
       clean-history-on-start: false
-
+#custom variables
+jwt:
+  secret: ${JWT_SECRET}
 time:
   clean:
     screening: ${TIME_CLEAN_SCREENING}

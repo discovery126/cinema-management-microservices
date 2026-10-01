@@ -8,7 +8,6 @@ public final class ErrorMessages {
     public static final String SCREENING_DOESNT_EXISTS = "screening doesn't exists";
     public static final String SOLD_OUT_SCREENING = "sold out screening";
     public static final String SEATS_OVERFLOW = "seats overflow";
-    public static final String INVALID_SEATS_COUNT = "invalid seats count";
 
     private ErrorMessages() {
         throw new AssertionError("No instances");
